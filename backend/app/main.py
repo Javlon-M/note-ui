@@ -8,8 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .core.config import settings
-from .db import create_db_and_tables
-from .routers import notes, folders, upload, publish
+from .routers import channels, publish
 
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
@@ -24,16 +23,14 @@ app.add_middleware(
 )
 
 # Routers under /api
-app.include_router(folders.router, prefix="/api")
-app.include_router(notes.router, prefix="/api")
-app.include_router(upload.router, prefix="/api")
+app.include_router(channels.router, prefix="/api")
 app.include_router(publish.router, prefix="/api")
 
 
 @app.on_event("startup")
 def on_startup() -> None:
-    settings.media_dir.mkdir(parents=True, exist_ok=True)
-    create_db_and_tables()
+    # stateless backend - nothing to initialize
+    pass
 
 
 # Static files (frontend) and media
@@ -43,5 +40,4 @@ if not frontend_dir.exists():
     candidate = Path(__file__).resolve().parents[3] / "frontend"
     frontend_dir = candidate if candidate.exists() else Path(os.getcwd()) / "frontend"
 
-app.mount("/media", StaticFiles(directory=settings.media_dir, html=False), name="media")
 app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")

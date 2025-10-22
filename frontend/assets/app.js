@@ -1,14 +1,12 @@
 const API = {
-  folders: '/api/folders/',
-  notes: '/api/notes/',
-  upload: '/api/upload/',
-  publish: (id) => `/api/publish/note/${id}`,
+  channels: '/api/channels/',
+  publish: '/api/publish',
 };
 
 const state = {
-  folders: [],
-  currentFolderId: null,
-  notes: [],
+  channels: [],
+  currentChannelId: null,
+  notes: [], // local drafts for current channel
   currentNoteId: null,
   saveTimer: null,
   searchQuery: '',
@@ -25,11 +23,11 @@ async function http(method, url, body){
 function renderFolders(){
   const container = document.getElementById('folders');
   container.innerHTML = '';
-  state.folders.forEach(f => {
+  state.channels.forEach(ch => {
     const el = document.createElement('div');
-    el.className = 'folder' + (state.currentFolderId === f.id ? ' active' : '');
-    el.innerHTML = `<span class="name">${f.name}</span>`;
-    el.onclick = () => { state.currentFolderId = f.id; loadNotes(); document.getElementById('current-folder-name').textContent = f.name; };
+    el.className = 'folder' + (state.currentChannelId === ch.id ? ' active' : '');
+    el.innerHTML = `<span class="name">${ch.name}</span>`;
+    el.onclick = () => { state.currentChannelId = ch.id; loadNotes(); document.getElementById('current-folder-name').textContent = ch.name; };
     container.appendChild(el);
   });
 }
@@ -65,45 +63,58 @@ function scheduleSave(){
   state.saveTimer = setTimeout(saveCurrentNote, 500);
 }
 
+function persistNotes(){
+  if(!state.currentChannelId) return;
+  const key = `drafts:${state.currentChannelId}`;
+  localStorage.setItem(key, JSON.stringify(state.notes));
+}
+
 async function saveCurrentNote(){
   const id = state.currentNoteId;
   if(!id) return;
   const title = document.getElementById('note-title').value;
   const content = document.getElementById('note-content').innerHTML;
-  try{
-    await http('PATCH', API.notes + id, { title, content_html: content });
-  }catch(err){ console.error('Save failed', err); }
+  const idx = state.notes.findIndex(n => n.id === id);
+  if(idx >= 0){
+    state.notes[idx].title = title;
+    state.notes[idx].content_html = content;
+    state.notes[idx].updated_at = Date.now();
+    persistNotes();
+    renderNotes();
+  }
 }
 
-async function loadFolders(){
-  state.folders = await http('GET', API.folders);
-  if(state.folders.length && state.currentFolderId == null){
-    state.currentFolderId = state.folders[0].id;
+async function loadChannels(){
+  state.channels = await http('GET', API.channels);
+  if(state.channels.length && state.currentChannelId == null){
+    state.currentChannelId = state.channels[0].id;
+    document.getElementById('current-folder-name').textContent = state.channels[0].name;
   }
   renderFolders();
 }
 
 async function loadNotes(){
-  const params = new URLSearchParams();
-  if(state.currentFolderId) params.set('folder_id', state.currentFolderId);
-  if(state.searchQuery) params.set('q', state.searchQuery);
-  const data = await http('GET', API.notes + '?' + params.toString());
-  state.notes = data.items;
+  if(!state.currentChannelId){ state.notes = []; renderNotes(); return; }
+  const key = `drafts:${state.currentChannelId}`;
+  const saved = localStorage.getItem(key);
+  const items = saved ? JSON.parse(saved) : [];
+  const q = state.searchQuery?.toLowerCase?.() || '';
+  state.notes = q ? items.filter(n => (n.title||'').toLowerCase().includes(q) || snippetFromHtml(n.content_html).toLowerCase().includes(q)) : items;
+  // Sort: pinned first then updated_at desc
+  state.notes.sort((a,b) => (b.is_pinned?1:0)-(a.is_pinned?1:0) || (b.updated_at||0)-(a.updated_at||0));
   renderNotes();
 }
 
 async function createFolder(){
-  const name = prompt('Folder name');
-  if(!name) return;
-  await http('POST', API.folders, { name });
-  await loadFolders();
+  alert('Channels are managed by server config (TELEGRAM_CHANNELS).');
 }
 
 async function createNote(){
-  const title = 'Untitled';
-  const folder_id = state.currentFolderId;
-  const note = await http('POST', API.notes, { title, folder_id, content_html: '' });
-  await loadNotes();
+  if(!state.currentChannelId){ alert('Select a channel first'); return; }
+  const note = { id: Date.now(), title: 'Untitled', content_html: '', is_pinned: false, updated_at: Date.now() };
+  state.notes.unshift(note);
+  persistNotes();
+  renderNotes();
   selectNote(note.id);
 }
 
@@ -118,27 +129,25 @@ function setBlock(tag){
 }
 
 async function handleImageUpload(file){
-  const form = new FormData();
-  form.append('file', file);
-  const res = await fetch(API.upload, { method: 'POST', body: form });
-  if(!res.ok) throw new Error(await res.text());
-  const data = await res.json();
-  const editor = document.getElementById('note-content');
-  const img = document.createElement('img');
-  img.src = data.url;
-  editor.appendChild(img);
-  scheduleSave();
+  const reader = new FileReader();
+  reader.onload = () => {
+    const editor = document.getElementById('note-content');
+    const img = document.createElement('img');
+    img.src = reader.result;
+    editor.appendChild(img);
+    scheduleSave();
+  };
+  reader.readAsDataURL(file);
 }
 
 async function publishCurrent(){
   const id = state.currentNoteId;
   if(!id){ alert('Select a note first'); return; }
-  try{
-    await http('POST', API.publish(id), {});
-    alert('Published to Telegram');
-  }catch(err){
-    alert('Publish failed: ' + err);
-  }
+  if(!state.currentChannelId){ alert('Select a channel'); return; }
+  const title = document.getElementById('note-title').value;
+  const content = document.getElementById('note-content').innerHTML;
+  await http('POST', API.publish, { channel_id: state.currentChannelId, title, content_html: content });
+  alert('Published to Telegram');
 }
 
 function bindEvents(){
@@ -160,21 +169,20 @@ function bindEvents(){
   });
   document.getElementById('pin-note').onclick = async () => {
     const id = state.currentNoteId; if(!id) return;
-    await http('POST', API.notes + id + '/pin');
+    const n = state.notes.find(n => n.id === id); if(!n) return;
+    n.is_pinned = !n.is_pinned; n.updated_at = Date.now();
+    persistNotes();
     await loadNotes();
   };
 }
 
 async function ensureDefaultFolder(){
-  if(!state.folders.length){
-    await http('POST', API.folders, { name: 'Notes' });
-    await loadFolders();
-  }
+  // Channels are server-configured; nothing to create here.
 }
 
 async function bootstrap(){
   bindEvents();
-  await loadFolders();
+  await loadChannels();
   await ensureDefaultFolder();
   await loadNotes();
 }
