@@ -1,0 +1,56 @@
+:root{
+  --bg: #f5f5f7;
+  --sidebar: #f0f0f4;
+  --separator: #d9d9df;
+  --text: #111113;
+  --muted: #6b6b6f;
+  --accent: #007aff;
+  --note-bg: #ffffff;
+}
+*{ box-sizing: border-box; }
+html, body{ height: 100%; }
+body{
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+#app{ display: grid; grid-template-columns: 260px 340px 1fr; height: 100vh; }
+.sidebar{
+  border-right: 1px solid var(--separator);
+  background: var(--sidebar);
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-header{ display: flex; align-items: center; justify-content: space-between; padding: 12px; }
+.app-title{ font-weight: 700; }
+.icon-btn{ border: 1px solid var(--separator); background: #fff; border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+.sidebar-search{ padding: 8px 12px; }
+.sidebar-search input{ width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--separator); background: #fff; }
+.folders{ padding: 6px; overflow: auto; }
+.folder{ padding: 8px 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.folder.active{ background: rgba(0,0,0,0.06); }
+.folder .name{ flex: 1; }
+
+.notes-list{ border-right: 1px solid var(--separator); background: var(--note-bg); display: flex; flex-direction: column; }
+.notes-list-header{ display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--separator); }
+.section-title{ font-weight: 600; }
+.primary-btn{ background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+
+.notes{ list-style: none; margin: 0; padding: 0; overflow: auto; }
+.note-item{ border-bottom: 1px solid var(--separator); padding: 12px; cursor: pointer; }
+.note-item .title{ font-weight: 600; }
+.note-item .snippet{ color: var(--muted); font-size: 12px; margin-top: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.note-item.active{ background: rgba(0,0,0,0.04); }
+
+.editor{ display: flex; flex-direction: column; background: var(--note-bg); }
+.editor-toolbar{ display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--separator); }
+.note-title{ flex: 1; font-size: 18px; padding: 8px 10px; border: 1px solid var(--separator); border-radius: 8px; }
+.toolbar-buttons button, .toolbar-buttons .upload{ border: 1px solid var(--separator); background: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.note-content{ flex: 1; padding: 18px 24px; overflow: auto; line-height: 1.5; }
+.note-content:empty:before{ content: attr(placeholder); color: var(--muted); }
+.note-content img{ max-width: 100%; border-radius: 6px; }
+
+@media (max-width: 1100px){
+  #app{ grid-template-columns: 220px 280px 1fr; }
+}

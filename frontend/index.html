@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apple Notes Web UI</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <link rel="icon" href="data:," />
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-title">Channels</div>
+        <button id="new-folder" class="icon-btn" title="New Channel" aria-label="New Channel">+</button>
+      </div>
+      <div class="sidebar-search">
+        <input id="global-search" placeholder="Search" />
+      </div>
+      <nav id="folders" class="folders">
+        <!-- Folders populated here -->
+      </nav>
+    </aside>
+
+    <section class="notes-list">
+      <div class="notes-list-header">
+        <div class="section-title" id="current-folder-name">All Notes</div>
+        <button id="new-note" class="primary-btn">New Note</button>
+      </div>
+      <ul id="notes" class="notes">
+        <!-- Notes populated here -->
+      </ul>
+    </section>
+
+    <section class="editor">
+      <div class="editor-toolbar">
+        <input id="note-title" class="note-title" placeholder="Title" />
+        <div class="toolbar-buttons">
+          <button data-cmd="bold" title="Bold"><b>B</b></button>
+          <button data-cmd="italic" title="Italic"><i>I</i></button>
+          <button data-cmd="underline" title="Underline"><u>U</u></button>
+          <button data-block="h1" title="Title">H1</button>
+          <button data-block="h2" title="Heading">H2</button>
+          <button data-block="p" title="Body">Body</button>
+          <button id="insert-bullets" title="Bulleted List">• List</button>
+          <button id="insert-numbers" title="Numbered List">1. List</button>
+          <label class="upload">
+            <input type="file" id="image-input" accept="image/*" hidden />
+            <span>Image</span>
+          </label>
+          <button id="pin-note" title="Pin">Pin</button>
+          <button id="publish" class="primary-btn" title="Publish to Telegram">Publish</button>
+        </div>
+      </div>
+      <div id="note-content" class="note-content" contenteditable="true" spellcheck="true"></div>
+    </section>
+  </div>
+
+  <script src="/assets/app.js"></script>
+</body>
+</html>
