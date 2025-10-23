@@ -75,7 +75,13 @@ function renderNotes(){
   state.notes.forEach(n => {
     const li = document.createElement('li');
     li.className = 'note-item' + (state.currentNoteId === n.id ? ' active' : '');
-    li.innerHTML = `<div class="title">${n.title || 'Untitled'}</div><div class="snippet">${snippetFromHtml(n.content_html)}</div>`;
+    li.innerHTML = `
+      <div class="note-content-wrapper">
+        <div class="title">${n.title || 'Untitled'}</div>
+        <div class="snippet">${snippetFromHtml(n.content_html)}</div>
+      </div>
+      <button class="note-trash-btn" title="Delete Note" onclick="event.stopPropagation(); deleteNote(${n.id})">🗑️</button>
+    `;
     li.onclick = () => selectNote(n.id);
     list.appendChild(li);
   });
@@ -243,9 +249,61 @@ function showNotification(message, type = 'info') {
   }, 5000);
 }
 
+function deleteNote(noteId) {
+  if (!confirm('Are you sure you want to delete this note?')) {
+    return;
+  }
+  
+  // Remove note from state
+  state.notes = state.notes.filter(n => n.id !== noteId);
+  
+  // If deleted note was current, clear editor
+  if (state.currentNoteId === noteId) {
+    state.currentNoteId = null;
+    document.getElementById('note-title').value = '';
+    document.getElementById('note-content').innerHTML = '';
+  }
+  
+  // Persist changes
+  persistNotes();
+  
+  // Re-render
+  renderNotes();
+  
+  showNotification('Note deleted', 'success');
+}
+
+function deleteAllNotes() {
+  if (!state.notes.length) {
+    showNotification('No notes to delete', 'info');
+    return;
+  }
+  
+  if (!confirm(`Are you sure you want to delete all ${state.notes.length} notes? This action cannot be undone.`)) {
+    return;
+  }
+  
+  // Clear all notes
+  state.notes = [];
+  state.currentNoteId = null;
+  
+  // Clear editor
+  document.getElementById('note-title').value = '';
+  document.getElementById('note-content').innerHTML = '';
+  
+  // Persist changes
+  persistNotes();
+  
+  // Re-render
+  renderNotes();
+  
+  showNotification('All notes deleted', 'success');
+}
+
 function bindEvents(){
   document.getElementById('new-folder').onclick = createFolder;
   document.getElementById('new-note').onclick = createNote;
+  document.getElementById('trash-all').onclick = deleteAllNotes;
   document.getElementById('note-title').addEventListener('input', scheduleSave);
   document.getElementById('note-content').addEventListener('input', () => {
     const editor = document.getElementById('note-content');
