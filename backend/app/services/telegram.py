@@ -51,6 +51,7 @@ def html_to_telegram_html(html_content: str) -> str:
     # Convert <br> and <p> to newlines
     text = re.sub(r"<\s*br\s*/?>", "\n", text, flags=re.I)
     text = re.sub(r"<\s*/?p\s*>", "\n", text, flags=re.I)
+    text = re.sub(r"&nbsp;", "  ", text, flags=re.I)
     # Strip most tags but preserve inner text for unsupported
     text = re.sub(r"<([a-zA-Z0-9]+)[^>]*>(.*?)</\1>", replacer, text, flags=re.S)
     # Unescape any remaining entities properly
