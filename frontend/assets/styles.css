@@ -31,11 +31,42 @@ body{
 .folder{ padding: 8px 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .folder.active{ background: rgba(0,0,0,0.06); }
 .folder .name{ flex: 1; }
+.folder .status{ font-size: 12px; font-weight: bold; }
+.folder .status.accessible{ color: #28a745; }
+.folder .status.inaccessible{ color: #dc3545; }
+
+.bot-status{ 
+  padding: 8px 10px; 
+  margin-bottom: 8px; 
+  border-radius: 8px; 
+  background: rgba(0,0,0,0.02); 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  font-size: 12px; 
+}
+.status-indicator{ 
+  width: 8px; 
+  height: 8px; 
+  border-radius: 50%; 
+}
+.status-indicator.connected{ background: #28a745; }
+.status-indicator.disconnected{ background: #dc3545; }
+.bot-info{ color: var(--muted); }
+
+.error{ 
+  padding: 8px 10px; 
+  color: #dc3545; 
+  background: rgba(220, 53, 69, 0.1); 
+  border-radius: 8px; 
+  margin: 8px; 
+  font-size: 12px; 
+}
 
 .notes-list{ border-right: 1px solid var(--separator); background: var(--note-bg); display: flex; flex-direction: column; }
 .notes-list-header{ display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--separator); }
 .section-title{ font-weight: 600; }
-.primary-btn{ background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.primary-btn{ background: var(--accent)!important; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
 
 .notes{ list-style: none; margin: 0; padding: 0; overflow: auto; }
 .note-item{ border-bottom: 1px solid var(--separator); padding: 12px; cursor: pointer; }
@@ -50,6 +81,23 @@ body{
 .note-content{ flex: 1; padding: 18px 24px; overflow: auto; line-height: 1.5; }
 .note-content:empty:before{ content: attr(placeholder); color: var(--muted); }
 .note-content img{ max-width: 100%; border-radius: 6px; }
+
+/* Notifications */
+.notification{ 
+  position: fixed; 
+  top: 20px; 
+  right: 20px; 
+  padding: 12px 16px; 
+  border-radius: 8px; 
+  color: white; 
+  font-weight: 500; 
+  z-index: 1000; 
+  max-width: 300px; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+}
+.notification.success{ background: #28a745; }
+.notification.error{ background: #dc3545; }
+.notification.info{ background: #17a2b8; }
 
 @media (max-width: 1100px){
   #app{ grid-template-columns: 220px 280px 1fr; }

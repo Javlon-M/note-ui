@@ -32,7 +32,6 @@ def on_startup() -> None:
     # stateless backend - nothing to initialize
     pass
 
-
 # Static files (frontend) and media
 frontend_dir = settings.frontend_dir
 if not frontend_dir.exists():

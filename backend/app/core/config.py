@@ -7,10 +7,15 @@ from typing import List, Dict
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from dotenv import load_dotenv
 
+# Load .env file from the backend directory
+backend_dir = Path(__file__).resolve().parents[2]
+env_file = backend_dir / ".env"
+load_dotenv(env_file)
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
+    model_config = SettingsConfigDict(env_file=str(env_file), env_file_encoding='utf-8', extra='ignore')
 
     # Base
     app_name: str = Field(default="Apple Notes Web UI")
@@ -22,14 +27,15 @@ class Settings(BaseSettings):
 
     # Telegram
     telegram_bot_token: str | None = Field(default=None)
-    telegram_channel_id: str | None = Field(default=None, description="Default @channel_username or numeric chat id like -100123...")
+    telegram_channel_id: str | None = Field(default=None)
 
     # Channels config (stateless)
     # Provide channels via env var TELEGRAM_CHANNELS as JSON, e.g.:
     #   [{"id":"-100123456","name":"My Channel"}, {"id":"@mychannel","name":"Public"}]
     # Or as CSV-like string: "My Channel=-100123456, Public=@mychannel"
     def get_channels(self) -> List[Dict[str, str]]:
-        raw = os.getenv("TELEGRAM_CHANNELS", "").strip()
+        raw = os.getenv("TELEGRAM_CHANNELS")
+        
         if not raw:
             return []
         # Try JSON first
@@ -59,6 +65,5 @@ class Settings(BaseSettings):
             if name and cid:
                 parsed.append({"name": name, "id": cid})
         return parsed
-
 
 settings = Settings()

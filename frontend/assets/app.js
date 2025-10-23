@@ -1,10 +1,13 @@
 const API = {
   channels: '/api/channels/',
+  channelsStatus: '/api/channels/status',
   publish: '/api/publish',
+  testPublish: '/api/publish/test',
 };
 
 const state = {
   channels: [],
+  channelsStatus: null,
   currentChannelId: null,
   notes: [], // local drafts for current channel
   currentNoteId: null,
@@ -23,11 +26,39 @@ async function http(method, url, body){
 function renderFolders(){
   const container = document.getElementById('folders');
   container.innerHTML = '';
+  
+  // Add bot status indicator
+  if (state.channelsStatus) {
+    const botStatusEl = document.createElement('div');
+    botStatusEl.className = 'bot-status';
+    const botConfigured = state.channelsStatus.bot_configured;
+    const botUsername = state.channelsStatus.bot_username || 'Unknown';
+    botStatusEl.innerHTML = `
+      <div class="status-indicator ${botConfigured ? 'connected' : 'disconnected'}"></div>
+      <span class="bot-info">Bot: ${botUsername}</span>
+    `;
+    container.appendChild(botStatusEl);
+  }
+  
   state.channels.forEach(ch => {
     const el = document.createElement('div');
     el.className = 'folder' + (state.currentChannelId === ch.id ? ' active' : '');
-    el.innerHTML = `<span class="name">${ch.name}</span>`;
-    el.onclick = () => { state.currentChannelId = ch.id; loadNotes(); document.getElementById('current-folder-name').textContent = ch.name; };
+    
+    // Find channel status
+    const channelStatus = state.channelsStatus?.channels?.find(cs => cs.id === ch.id);
+    const isAccessible = channelStatus?.accessible || false;
+    const statusIcon = isAccessible ? '✓' : '✗';
+    const statusClass = isAccessible ? 'accessible' : 'inaccessible';
+    
+    el.innerHTML = `
+      <span class="name">${ch.name}</span>
+      <span class="status ${statusClass}" title="${channelStatus?.error || 'Channel accessible'}">${statusIcon}</span>
+    `;
+    el.onclick = () => { 
+      state.currentChannelId = ch.id; 
+      loadNotes(); 
+      document.getElementById('current-folder-name').textContent = ch.name; 
+    };
     container.appendChild(el);
   });
 }
@@ -85,12 +116,21 @@ async function saveCurrentNote(){
 }
 
 async function loadChannels(){
-  state.channels = await http('GET', API.channels);
-  if(state.channels.length && state.currentChannelId == null){
-    state.currentChannelId = state.channels[0].id;
-    document.getElementById('current-folder-name').textContent = state.channels[0].name;
+  try {
+    state.channels = await http('GET', API.channels);
+    state.channelsStatus = await http('GET', API.channelsStatus);
+    
+    if(state.channels.length && state.currentChannelId == null){
+      state.currentChannelId = state.channels[0].id;
+      document.getElementById('current-folder-name').textContent = state.channels[0].name;
+    }
+    renderFolders();
+  } catch (error) {
+    console.error('Failed to load channels:', error);
+    // Show error in UI
+    const container = document.getElementById('folders');
+    container.innerHTML = `<div class="error">Failed to load channels: ${error.message}</div>`;
   }
-  renderFolders();
 }
 
 async function loadNotes(){
@@ -142,19 +182,85 @@ async function handleImageUpload(file){
 
 async function publishCurrent(){
   const id = state.currentNoteId;
-  if(!id){ alert('Select a note first'); return; }
-  if(!state.currentChannelId){ alert('Select a channel'); return; }
+  if(!id){ 
+    showNotification('Select a note first', 'error');
+    return; 
+  }
+  if(!state.currentChannelId){ 
+    showNotification('Select a channel', 'error');
+    return; 
+  }
+  
   const title = document.getElementById('note-title').value;
   const content = document.getElementById('note-content').innerHTML;
-  await http('POST', API.publish, { channel_id: state.currentChannelId, title, content_html: content });
-  alert('Published to Telegram');
+  
+  if(!title.trim() && !content.trim()){
+    showNotification('Note is empty', 'error');
+    return;
+  }
+  
+  // Check if current channel is accessible
+  const channelStatus = state.channelsStatus?.channels?.find(cs => cs.id === state.currentChannelId);
+  if (channelStatus && !channelStatus.accessible) {
+    showNotification(`Cannot publish to ${channelStatus.name}: ${channelStatus.error}`, 'error');
+    return;
+  }
+  
+  try {
+    showNotification('Publishing...', 'info');
+    const result = await http('POST', API.publish, { 
+      channel_id: state.currentChannelId, 
+      title, 
+      content_html: content,
+      verify_channel: true
+    });
+    
+    if (result.success) {
+      showNotification('Published to Telegram successfully!', 'success');
+    } else {
+      showNotification('Publish failed: ' + (result.message || 'Unknown error'), 'error');
+    }
+  } catch (error) {
+    console.error('Publish error:', error);
+    showNotification('Publish failed: ' + error.message, 'error');
+  }
+}
+
+function showNotification(message, type = 'info') {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+  
+  // Add to page
+  document.body.appendChild(notification);
+  
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.parentNode.removeChild(notification);
+    }
+  }, 5000);
 }
 
 function bindEvents(){
   document.getElementById('new-folder').onclick = createFolder;
   document.getElementById('new-note').onclick = createNote;
   document.getElementById('note-title').addEventListener('input', scheduleSave);
-  document.getElementById('note-content').addEventListener('input', scheduleSave);
+  document.getElementById('note-content').addEventListener('input', () => {
+    const editor = document.getElementById('note-content');
+    
+    editor.querySelectorAll('span').forEach(span => {
+      // Move all child nodes (text, elements) before the span
+      while (span.firstChild) {
+        span.parentNode.insertBefore(span.firstChild, span);
+      }
+      // Remove the empty span
+      span.remove();
+    });
+
+    scheduleSave()
+  });
   document.querySelectorAll('[data-cmd]').forEach(btn => btn.onclick = () => exec(btn.dataset.cmd));
   document.querySelectorAll('[data-block]').forEach(btn => btn.onclick = () => setBlock(btn.dataset.block));
   document.getElementById('insert-bullets').onclick = () => exec('insertUnorderedList');
