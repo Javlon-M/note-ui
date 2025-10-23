@@ -3,6 +3,7 @@ const API = {
   channelsStatus: '/api/channels/status',
   publish: '/api/publish',
   testPublish: '/api/publish/test',
+  validate: '/api/publish/validate',
 };
 
 const state = {
@@ -93,11 +94,46 @@ function selectNote(id){
   document.getElementById('note-title').value = note?.title || '';
   document.getElementById('note-content').innerHTML = note?.content_html || '';
   renderNotes();
+  updateCharCounter();
 }
 
 function scheduleSave(){
   if(state.saveTimer) clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(saveCurrentNote, 500);
+  updateCharCounter();
+}
+
+function updateCharCounter(){
+  const title = document.getElementById('note-title').value;
+  const content = document.getElementById('note-content').innerHTML;
+  
+  // Simple text length calculation (approximate)
+  const titleText = title || '';
+  const contentText = content.replace(/<[^>]*>/g, ''); // Remove HTML tags
+  const totalLength = titleText.length + contentText.length + 2; // +2 for newlines
+  
+  const counter = document.getElementById('char-counter');
+  const hasImages = content.includes('<img');
+  
+  if (hasImages) {
+    counter.textContent = `${totalLength} / 1024`;
+    if (totalLength > 1024) {
+      counter.className = 'char-counter error';
+    } else if (totalLength > 900) {
+      counter.className = 'char-counter warning';
+    } else {
+      counter.className = 'char-counter';
+    }
+  } else {
+    counter.textContent = `${totalLength} / 4096`;
+    if (totalLength > 4096) {
+      counter.className = 'char-counter error';
+    } else if (totalLength > 3500) {
+      counter.className = 'char-counter warning';
+    } else {
+      counter.className = 'char-counter';
+    }
+  }
 }
 
 function persistNotes(){
@@ -186,6 +222,20 @@ async function handleImageUpload(file){
   reader.readAsDataURL(file);
 }
 
+async function validateContent(title, content) {
+  try {
+    const result = await http('POST', API.validate, {
+      channel_id: state.currentChannelId,
+      title,
+      content_html: content
+    });
+    return result;
+  } catch (error) {
+    console.error('Validation error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 async function publishCurrent(){
   const id = state.currentNoteId;
   if(!id){ 
@@ -209,6 +259,20 @@ async function publishCurrent(){
   const channelStatus = state.channelsStatus?.channels?.find(cs => cs.id === state.currentChannelId);
   if (channelStatus && !channelStatus.accessible) {
     showNotification(`Cannot publish to ${channelStatus.name}: ${channelStatus.error}`, 'error');
+    return;
+  }
+  
+  // Validate content length first
+  showNotification('Validating content...', 'info');
+  const validation = await validateContent(title, content);
+  
+  if (!validation.success) {
+    showNotification('Validation failed: ' + validation.error, 'error');
+    return;
+  }
+  
+  if (!validation.validation.is_valid) {
+    showNotification(validation.recommendation, 'error');
     return;
   }
   

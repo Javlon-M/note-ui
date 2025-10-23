@@ -33,29 +33,111 @@ def parse_data_url(data_url: str) -> Tuple[str, bytes]:
     import base64
     return mime, base64.b64decode(b64)
 
-def html_to_telegram_html(html_content: str) -> str:
-    # Telegram supports a limited subset of HTML. We'll strip most tags except b,i,u,s,a,code,pre,blockquote.
+def html_to_telegram_text(html_content: str) -> str:
+    """Convert HTML to plain text suitable for Telegram."""
     if not html_content:
         return ""
-    # Allow basic formatting and links
-    allowed = ["b", "strong", "i", "em", "u", "ins", "s", "strike", "a", "code", "pre", "blockquote"]
-    # Remove images and unsupported tags; keep inner text
-    def replacer(match: re.Match[str]) -> str:
-        tag = match.group(1).lower()
-        if tag in allowed:
-            return match.group(0)
-        return html.escape(match.group(2) or "")
-
-    # Replace block tags with spacing
-    text = re.sub(r"<(?:img|video|audio)[^>]*>", "", html_content, flags=re.I)
-    # Convert <br> and <p> to newlines
+    
+    # Remove all HTML tags and convert to plain text
+    text = html_content
+    
+    # Remove images
+    text = re.sub(r"<(?:img|video|audio)[^>]*>", "", text, flags=re.I)
+    
+    # Convert line breaks
     text = re.sub(r"<\s*br\s*/?>", "\n", text, flags=re.I)
-    text = re.sub(r"<\s*/?p\s*>", "\n", text, flags=re.I)
-    text = re.sub(r"&nbsp;", "  ", text, flags=re.I)
-    # Strip most tags but preserve inner text for unsupported
-    text = re.sub(r"<([a-zA-Z0-9]+)[^>]*>(.*?)</\1>", replacer, text, flags=re.S)
-    # Unescape any remaining entities properly
+    text = re.sub(r"<\s*/?p[^>]*>", "\n", text, flags=re.I)
+    text = re.sub(r"<\s*/?div[^>]*>", "\n", text, flags=re.I)
+    text = re.sub(r"<\s*/?li[^>]*>", "\n• ", text, flags=re.I)
+    text = re.sub(r"<\s*/?ol[^>]*>", "\n", text, flags=re.I)
+    text = re.sub(r"<\s*/?ul[^>]*>", "\n", text, flags=re.I)
+    
+    # Convert HTML entities
+    text = re.sub(r"&nbsp;", " ", text, flags=re.I)
+    text = re.sub(r"&amp;", "&", text, flags=re.I)
+    text = re.sub(r"&lt;", "<", text, flags=re.I)
+    text = re.sub(r"&gt;", ">", text, flags=re.I)
+    text = re.sub(r"&quot;", '"', text, flags=re.I)
+    
+    # Remove all remaining HTML tags
+    text = re.sub(r"<[^>]+>", "", text)
+    
+    # Clean up whitespace
+    text = re.sub(r"\n\s*\n", "\n\n", text)  # Multiple newlines to double newlines
+    text = re.sub(r"[ \t]+", " ", text)  # Multiple spaces to single space
+    text = text.strip()
+    
     return text
+
+
+def validate_content_length(html_content: str, title: str = "", has_images: bool = False) -> dict:
+    """Validate content length against Telegram limits."""
+    text = html_to_telegram_text(html_content)
+    full_text = f"{title}\n\n{text}" if title else text
+    
+    # Telegram limits
+    TEXT_LIMIT = 4096
+    IMAGE_CAPTION_LIMIT = 1024
+    
+    if has_images:
+        limit = IMAGE_CAPTION_LIMIT
+        limit_type = "image caption"
+    else:
+        limit = TEXT_LIMIT
+        limit_type = "text message"
+    
+    is_valid = len(full_text) <= limit
+    exceeded_by = len(full_text) - limit if not is_valid else 0
+    
+    return {
+        "is_valid": is_valid,
+        "content_length": len(full_text),
+        "limit": limit,
+        "limit_type": limit_type,
+        "exceeded_by": exceeded_by,
+        "message": f"Content length: {len(full_text)} characters (limit: {limit} for {limit_type})"
+    }
+
+
+def split_message(text: str, max_length: int = 4000) -> List[str]:
+    """Split long text into multiple messages that fit Telegram's limits."""
+    if len(text) <= max_length:
+        return [text]
+    
+    messages = []
+    current_message = ""
+    
+    # Split by paragraphs first
+    paragraphs = text.split('\n\n')
+    
+    for paragraph in paragraphs:
+        # If adding this paragraph would exceed limit
+        if len(current_message) + len(paragraph) + 2 > max_length:
+            if current_message:
+                messages.append(current_message.strip())
+                current_message = ""
+            
+            # If single paragraph is too long, split by sentences
+            if len(paragraph) > max_length:
+                sentences = paragraph.split('. ')
+                for sentence in sentences:
+                    if len(current_message) + len(sentence) + 2 > max_length:
+                        if current_message:
+                            messages.append(current_message.strip())
+                            current_message = ""
+                    current_message += sentence + ". "
+            else:
+                current_message = paragraph
+        else:
+            if current_message:
+                current_message += "\n\n" + paragraph
+            else:
+                current_message = paragraph
+    
+    if current_message:
+        messages.append(current_message.strip())
+    
+    return messages
 
 async def send_message(token: str, chat_id: str, text: str, disable_web_page_preview: bool = False) -> dict:
     url = f"{TELEGRAM_API_BASE}/bot{token}/sendMessage"
@@ -147,14 +229,20 @@ async def publish_content(html_content: str, title: str, *, chat_id: Optional[st
     if not token or not chat_id:
         raise ValueError("Telegram credentials not configured")
 
-    text = html_to_telegram_html(html_content)
+    text = html_to_telegram_text(html_content)
     # Extract images hosted on this server and send first image with caption, rest separately
     image_srcs = extract_image_srcs(html_content)
+    has_images = len(image_srcs) > 0
+
+    # Validate content length
+    validation = validate_content_length(html_content, title, has_images)
+    if not validation["is_valid"]:
+        raise ValueError(f"Content exceeds Telegram limit: {validation['message']}. Please reduce content by {validation['exceeded_by']} characters.")
 
     results: List[dict] = []
     if image_srcs:
         first = image_srcs[0]
-        caption = f"{html.escape(title)}\n\n{text}" if title else text
+        caption = f"{title}\n\n{text}" if title else text
         if is_data_url(first):
             mime, bytes_content = parse_data_url(first)
             filename = f"image.{mime.split('/')[-1]}"
@@ -179,6 +267,17 @@ async def publish_content(html_content: str, title: str, *, chat_id: Optional[st
         if results:
             return {"ok": True, "results": results}
 
-    # Fallback: send text-only message
-    results.append(await send_message(token, chat_id, f"{html.escape(title)}\n\n{text}" if title else text))
+    # Send text-only message(s) - split if too long
+    full_text = f"{title}\n\n{text}" if title else text
+    message_parts = split_message(full_text)
+    
+    for i, message_part in enumerate(message_parts):
+        try:
+            result = await send_message(token, chat_id, message_part)
+            results.append(result)
+        except Exception as e:
+            print(f"Failed to send message part {i+1}: {e}")
+            # Continue with remaining parts
+            continue
+    
     return {"ok": True, "results": results}

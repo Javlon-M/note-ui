@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
-from ..services.telegram import publish_content, verify_channel_access
+from ..services.telegram import publish_content, verify_channel_access, validate_content_length, extract_image_srcs
 from ..core.config import settings
 
 router = APIRouter(prefix="/publish", tags=["publish"])
@@ -82,3 +82,41 @@ async def test_publish(payload: PublishRequest) -> dict:
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to test channel access: {str(e)}")
+
+
+@router.post("/validate")
+async def validate_content(payload: PublishRequest) -> dict:
+    """Validate content length against Telegram limits."""
+    try:
+        # Extract images to determine if content has images
+        image_srcs = extract_image_srcs(payload.content_html or "")
+        has_images = len(image_srcs) > 0
+        
+        # Validate content length
+        validation = validate_content_length(
+            payload.content_html or "", 
+            payload.title or "", 
+            has_images
+        )
+        
+        return {
+            "success": True,
+            "validation": validation,
+            "recommendation": get_recommendation(validation)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to validate content: {str(e)}")
+
+
+def get_recommendation(validation: dict) -> str:
+    """Get recommendation based on validation result."""
+    if validation["is_valid"]:
+        return "Content is within Telegram limits. Ready to publish!"
+    
+    exceeded_by = validation["exceeded_by"]
+    limit_type = validation["limit_type"]
+    
+    if limit_type == "image caption":
+        return f"⚠️ Content exceeds Telegram limit for image captions (1,024 characters). Please reduce content by {exceeded_by} characters, or remove images to use the 4,096 character limit for text-only messages."
+    else:
+        return f"⚠️ Content exceeds Telegram limit for text messages (4,096 characters). Please reduce content by {exceeded_by} characters."
