@@ -11,6 +11,8 @@ router = APIRouter(prefix="/publish", tags=["publish"])
 
 
 class PublishRequest(BaseModel):
+    telegram_channel: str
+    telegram_bot_token: str
     channel_id: str
     title: str | None = None
     content_html: str | None = None
@@ -21,18 +23,19 @@ class PublishRequest(BaseModel):
 @router.post("")
 async def publish_endpoint(payload: PublishRequest) -> dict:
     # Use provided token or fall back to settings
-    token = payload.token or settings.telegram_bot_token
+    token = payload.telegram_bot_token
+    chennel_id = payload.telegram_channel.split("=")[1]
     
     if not token:
         raise HTTPException(status_code=400, detail="Telegram bot token not provided")
     
-    if not payload.channel_id:
+    if not chennel_id:
         raise HTTPException(status_code=400, detail="Channel ID is required")
     
     # Verify channel access if requested
     if payload.verify_channel:
         try:
-            verification = await verify_channel_access(token, payload.channel_id)
+            verification = await verify_channel_access(token, chennel_id)
             if not verification.get("accessible", False):
                 raise HTTPException(
                     status_code=403, 
@@ -47,7 +50,7 @@ async def publish_endpoint(payload: PublishRequest) -> dict:
         result = await publish_content(
             html_content=payload.content_html or "",
             title=payload.title or "",
-            chat_id=payload.channel_id,
+            chat_id=chennel_id,
             token=token,
         )
         return {

@@ -188,7 +188,24 @@ async function loadNotes(){
 }
 
 async function createFolder(){
-  alert('Channels are managed by server config (TELEGRAM_CHANNELS).');
+  if (localStorage.getItem('TELEGRAM_CHANNELS') && localStorage.getItem('TELEGRAM_BOT_TOKEN')) {
+    showNotification('You already have all the details', 'success');
+    return;
+  }
+
+  const channelName = prompt('Enter the channel name');
+  const channelId = prompt('Enter the channel id. Starts with -100');
+  const botToken = prompt('Enter the bot token');
+
+  if (!channelName || !channelId || !botToken) {
+    showNotification('Please enter all the details of channel and bot', 'error');
+    return;
+  }
+
+  const TELEGRAM_CHANNELS = `${channelName}=${channelId}`
+
+  localStorage.setItem('TELEGRAM_CHANNELS', TELEGRAM_CHANNELS)
+  localStorage.setItem('TELEGRAM_BOT_TOKEN', botToken)
 }
 
 async function createNote(){
@@ -222,12 +239,14 @@ async function handleImageUpload(file){
   reader.readAsDataURL(file);
 }
 
-async function validateContent(title, content) {
+async function validateContent(title, content, telegram_channel, telegram_bot_token) {
   try {
     const result = await http('POST', API.validate, {
       channel_id: state.currentChannelId,
       title,
-      content_html: content
+      content_html: content,
+      telegram_channel: telegram_channel,
+      telegram_bot_token: telegram_bot_token,
     });
     return result;
   } catch (error) {
@@ -237,6 +256,9 @@ async function validateContent(title, content) {
 }
 
 async function publishCurrent(){
+  const telegram_channel = localStorage.getItem('TELEGRAM_CHANNELS')
+  const telegram_bot_token = localStorage.getItem('TELEGRAM_BOT_TOKEN')
+
   const id = state.currentNoteId;
   if(!id){ 
     showNotification('Select a note first', 'error');
@@ -264,7 +286,7 @@ async function publishCurrent(){
   
   // Validate content length first
   showNotification('Validating content...', 'info');
-  const validation = await validateContent(title, content);
+  const validation = await validateContent(title, content, telegram_channel, telegram_bot_token);
   
   if (!validation.success) {
     showNotification('Validation failed: ' + validation.error, 'error');
@@ -278,7 +300,10 @@ async function publishCurrent(){
   
   try {
     showNotification('Publishing...', 'info');
+
     const result = await http('POST', API.publish, { 
+      telegram_channel: telegram_channel,
+      telegram_bot_token: telegram_bot_token,
       channel_id: state.currentChannelId, 
       title, 
       content_html: content,

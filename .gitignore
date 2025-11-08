@@ -2,6 +2,7 @@
 build/
 dist/
 path/
+venv/
 *.egg-info/
 *.pyc
 *.pyo
