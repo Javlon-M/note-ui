@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=str(env_file), env_file_encoding='utf-8', extra='ignore')
 
     # Base
-    app_name: str = Field(default="Apple Notes Web UI")
+    app_name: str = Field(default="Async")
     debug: bool = Field(default=True)
 
     # Paths

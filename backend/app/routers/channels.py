@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
+from pydantic import BaseModel
 
 from ..core.config import settings
 from ..services.telegram import get_bot_info, verify_channel_access
@@ -9,15 +10,19 @@ from ..services.telegram import get_bot_info, verify_channel_access
 router = APIRouter(prefix="/channels", tags=["channels"])
 
 
+class ChannelStatusRequest(BaseModel):
+    channels: list[dict[str, str]]
+    token: str
+
 @router.get("/")
 def list_channels() -> list[dict[str, str]]:
     return settings.get_channels()
 
-@router.get("/status")
-async def get_channels_status() -> Dict[str, Any]:
+@router.post("/status")
+async def get_channels_status(payload: ChannelStatusRequest) -> Dict[str, Any]:
     """Get status of all configured channels including bot verification."""
-    channels = settings.get_channels()
-    token = settings.telegram_bot_token
+    channels = payload.channels
+    token = payload.token
     
     if not token:
         return {
