@@ -81,8 +81,8 @@ function renderNotes(){
         <div class="title">${n.title || 'Untitled'}</div>
         <div class="snippet">${snippetFromHtml(n.content_html)}</div>
       </div>
-      <button class="note-trash-btn" title="Delete Note" onclick="event.stopPropagation(); deleteNote(${n.id})">🗑️</button>
     `;
+    // <button class="note-trash-btn" title="Delete Note" onclick="event.stopPropagation(); deleteNote(${n.id})">🗑️</button>
     li.onclick = () => selectNote(n.id);
     list.appendChild(li);
   });
@@ -159,12 +159,24 @@ async function saveCurrentNote(){
 
 async function loadChannels(){
   try {
-    state.channels = await http('GET', API.channels);
-    state.channelsStatus = await http('GET', API.channelsStatus);
+    const channel = localStorage.getItem("TELEGRAM_CHANNELS")
+    const token = localStorage.getItem("TELEGRAM_BOT_TOKEN")
+
+    if (!channel || !token) {
+      const container = document.getElementById('folders');
+      container.innerHTML = `<div class="info">Please configure the bot and channel</div>`;
+      return
+    }
+
+    state.channels = [{name: channel.split("=")[0], id: channel.split("=")[1]}]
+    state.channelsStatus = await http('POST', API.channelsStatus, {
+      channels: state.channels,
+      token: token
+    });
     
     if(state.channels.length && state.currentChannelId == null){
       state.currentChannelId = state.channels[0].id;
-      document.getElementById('current-folder-name').textContent = state.channels[0].name;
+      // document.getElementById('current-folder-name').textContent = state.channels[0].name;
     }
     renderFolders();
   } catch (error) {
@@ -206,11 +218,13 @@ async function createFolder(){
 
   localStorage.setItem('TELEGRAM_CHANNELS', TELEGRAM_CHANNELS)
   localStorage.setItem('TELEGRAM_BOT_TOKEN', botToken)
+
+  window.location.reload();
 }
 
 async function createNote(){
   if(!state.currentChannelId){ alert('Select a channel first'); return; }
-  const note = { id: Date.now(), title: 'Untitled', content_html: '', is_pinned: false, updated_at: Date.now() };
+  const note = { id: Date.now(), title: 'New Note', content_html: '', is_pinned: false, updated_at: Date.now() };
   state.notes.unshift(note);
   persistNotes();
   renderNotes();
@@ -392,8 +406,9 @@ function deleteAllNotes() {
 function bindEvents(){
   document.getElementById('new-folder').onclick = createFolder;
   document.getElementById('new-note').onclick = createNote;
-  document.getElementById('trash-all').onclick = deleteAllNotes;
-  document.getElementById('note-title').addEventListener('input', scheduleSave);
+  // document.getElementById('note-trash-btn').onclick = deleteNote;
+  // document.getElementById('trash-all').onclick = deleteAllNotes;
+  // document.getElementById('note-title').addEventListener('input', scheduleSave);
   document.getElementById('note-content').addEventListener('input', () => {
     const editor = document.getElementById('note-content');
     
@@ -410,23 +425,23 @@ function bindEvents(){
   });
   document.querySelectorAll('[data-cmd]').forEach(btn => btn.onclick = () => exec(btn.dataset.cmd));
   document.querySelectorAll('[data-block]').forEach(btn => btn.onclick = () => setBlock(btn.dataset.block));
-  document.getElementById('insert-bullets').onclick = () => exec('insertUnorderedList');
-  document.getElementById('insert-numbers').onclick = () => exec('insertOrderedList');
-  document.getElementById('image-input').addEventListener('change', (e) => {
-    const f = e.target.files?.[0]; if(f) handleImageUpload(f); e.target.value = '';
-  });
-  document.querySelector('.upload').onclick = () => document.getElementById('image-input').click();
-  document.getElementById('publish').onclick = publishCurrent;
+  // document.getElementById('insert-bullets').onclick = () => exec('insertUnorderedList');
+  // document.getElementById('insert-numbers').onclick = () => exec('insertOrderedList');
+  // document.getElementById('image-input').addEventListener('change', (e) => {
+  //   const f = e.target.files?.[0]; if(f) handleImageUpload(f); e.target.value = '';
+  // });
+  // document.querySelector('.upload').onclick = () => document.getElementById('image-input').click();
+  // document.getElementById('publish').onclick = publishCurrent;
   document.getElementById('global-search').addEventListener('input', async (e) => {
     state.searchQuery = e.target.value; await loadNotes();
   });
-  document.getElementById('pin-note').onclick = async () => {
-    const id = state.currentNoteId; if(!id) return;
-    const n = state.notes.find(n => n.id === id); if(!n) return;
-    n.is_pinned = !n.is_pinned; n.updated_at = Date.now();
-    persistNotes();
-    await loadNotes();
-  };
+  // document.getElementById('pin-note').onclick = async () => {
+  //   const id = state.currentNoteId; if(!id) return;
+  //   const n = state.notes.find(n => n.id === id); if(!n) return;
+  //   n.is_pinned = !n.is_pinned; n.updated_at = Date.now();
+  //   persistNotes();
+  //   await loadNotes();
+  // };
 }
 
 async function ensureDefaultFolder(){

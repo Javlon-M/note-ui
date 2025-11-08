@@ -24,9 +24,54 @@ body{
 }
 .sidebar-header{ display: flex; align-items: center; justify-content: space-between; padding: 12px; }
 .app-title{ font-weight: 700; }
+.icon {
+  width: 24px;
+  height: 24px;
+  color: #FFB800;
+  cursor: pointer;
+  stroke-width: 1.5px;
+}
 .icon-btn{ border: 1px solid var(--separator); background: #fff; border-radius: 8px; padding: 6px 8px; cursor: pointer; }
-.sidebar-search{ padding: 8px 12px; }
-.sidebar-search input{ width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--separator); background: #fff; }
+.sidebar-search{ 
+  display: flex;
+  align-items: center;
+  margin: 10px;
+  background-color: hsl(240,10.6%,90.8%);
+  border: 0;
+  padding: 0;
+  appearance: none;
+  outline: none;
+  font: inherit;
+  border-radius: 10px;
+}
+.sidebar-search input{ 
+  width: 100%; 
+  padding: 8px 10px;
+  border-radius: 10px; 
+  border: 1px solid var(--separator); 
+  background: transparent; 
+}
+
+.nav-bar-group.right{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.hover{
+  padding: 3px;
+  border-radius: 5px;
+  border: none;
+  background-color: transparent;
+}
+
+.hover:hover{
+  background-color: hsl(240,10.6%,90.8%);
+}
+
+.sidebar-search input:focus{
+  outline: 2px solid rgb(84, 146, 234);
+}
 .folders{ padding: 6px; overflow: auto; }
 .folder{ padding: 8px 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .folder.active{ background: rgba(0,0,0,0.06); }
@@ -63,8 +108,20 @@ body{
   font-size: 12px; 
 }
 
+.info{ 
+  padding: 8px 10px; 
+  color: #51dc35; 
+  background: rgba(220, 53, 69, 0.1); 
+  border-radius: 8px; 
+  margin: 8px; 
+  font-size: 12px; 
+}
+
 .notes-list{ border-right: 1px solid var(--separator); background: var(--note-bg); display: flex; flex-direction: column; }
-.notes-list-header{ display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--separator); }
+.notes-list-header{ 
+  width: 100%;
+  height: 52px;
+}
 .section-title{ font-weight: 600; }
 .header-buttons{ display: flex; align-items: center; gap: 8px; }
 .primary-btn{ background: var(--accent)!important; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
@@ -72,7 +129,13 @@ body{
 .trash-btn:hover{ background: #c82333; }
 
 .notes{ list-style: none; margin: 0; padding: 0; overflow: auto; }
-.note-item{ border-bottom: 1px solid var(--separator); padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.note-item{ 
+  padding: 12px; 
+  cursor: pointer; 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+}
 .note-item:hover{ background: rgba(0,0,0,0.02); }
 .note-item.active{ background: rgba(0,0,0,0.04); }
 .note-content-wrapper{ flex: 1; min-width: 0; }
@@ -83,7 +146,18 @@ body{
 .note-trash-btn:hover{ background: #c82333; }
 
 .editor{ display: flex; flex-direction: column; background: var(--note-bg); }
-.editor-toolbar{ display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--separator); }
+.editor-toolbar{ 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+  gap: 8px; 
+  width: 100%;
+  height: 52px;
+  padding: 0 10px;
+
+  background: white;
+  border-radius: 8px;
+}
 .note-title{ flex: 1; font-size: 18px; padding: 8px 10px; border: 1px solid var(--separator); border-radius: 8px; }
 .toolbar-buttons button, .toolbar-buttons .upload{ border: 1px solid var(--separator); background: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
 .char-counter{ 
@@ -97,7 +171,13 @@ body{
 }
 .char-counter.warning{ color: #ff9500; }
 .char-counter.error{ color: #dc3545; }
-.note-content{ flex: 1; padding: 18px 24px; overflow: auto; line-height: 1.5; }
+.note-content{ 
+  flex: 1; 
+  padding: 18px 24px; 
+  overflow: auto; 
+  line-height: 1.5; 
+  outline: none;
+}
 .note-content:empty:before{ content: attr(placeholder); color: var(--muted); }
 .note-content img{ max-width: 100%; border-radius: 6px; }
 

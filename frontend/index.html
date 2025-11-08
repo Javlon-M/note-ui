@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Apple Notes Web UI</title>
+  <title>Async</title>
   <link rel="stylesheet" href="/assets/styles.css" />
   <link rel="icon" href="data:," />
 </head>
@@ -14,9 +14,6 @@
         <div class="app-title">Channels</div>
         <button id="new-folder" class="icon-btn" title="New Channel" aria-label="New Channel">+</button>
       </div>
-      <div class="sidebar-search">
-        <input id="global-search" placeholder="Search" />
-      </div>
       <nav id="folders" class="folders">
         <!-- Folders populated here -->
       </nav>
@@ -24,11 +21,13 @@
 
     <section class="notes-list">
       <div class="notes-list-header">
-        <div class="section-title" id="current-folder-name">All Notes</div>
-        <div class="header-buttons">
+        <div class="sidebar-search">
+          <input id="global-search" placeholder="Search all notes" />
+        </div>
+        <!-- <div class="header-buttons">
           <button id="trash-all" class="trash-btn" title="Delete All Notes">🗑️</button>
           <button id="new-note" class="primary-btn">New Note</button>
-        </div>
+        </div> -->
       </div>
       <ul id="notes" class="notes">
         <!-- Notes populated here -->
@@ -37,8 +36,38 @@
 
     <section class="editor">
       <div class="editor-toolbar">
-        <input id="note-title" class="note-title" placeholder="Title" />
-        <div class="toolbar-buttons">
+        <div class="nav-bar-group left">
+          <button class="hover" id="note-trash-btn" title="Delete Note" onclick=`deleteNote(${n.id})`>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <!-- Trash icon -->
+                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="nav-bar-group center">
+          <button class="hover">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <!-- Text format icon -->
+              <path d="M4 7V4h16v3M9 20h6M12 4v16"/>
+            </svg>
+          </button>
+        </div>
+        <div class="nav-bar-group right">
+          <button class="hover" id="new-note">
+            <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFB800" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button id="publish" class="hover" title="Publish to Telegram">
+            <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0088CC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 2L11 13"/>
+              <path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+            </svg>
+          </button>
+        </div>
+        <!-- <input id="note-title" class="note-title" placeholder="Title" /> -->
+        <!-- <div class="toolbar-buttons">
           <button data-cmd="bold" title="Bold"><b>B</b></button>
           <button data-cmd="italic" title="Italic"><i>I</i></button>
           <button data-cmd="underline" title="Underline"><u>U</u></button>
@@ -54,7 +83,7 @@
           <button id="pin-note" title="Pin">Pin</button>
           <div class="char-counter" id="char-counter">0 / 4096</div>
           <button id="publish" class="primary-btn" title="Publish to Telegram">Publish</button>
-        </div>
+        </div> -->
       </div>
       <div id="note-content" class="note-content" contenteditable="true" spellcheck="true"></div>
     </section>
