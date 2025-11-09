@@ -58,7 +58,6 @@ function renderFolders(){
     el.onclick = () => { 
       state.currentChannelId = ch.id; 
       loadNotes(); 
-      document.getElementById('current-folder-name').textContent = ch.name; 
     };
     container.appendChild(el);
   });
@@ -78,8 +77,8 @@ function renderNotes(){
     li.className = 'note-item' + (state.currentNoteId === n.id ? ' active' : '');
     li.innerHTML = `
       <div class="note-content-wrapper">
-        <div class="title">${n.title || 'Untitled'}</div>
-        <div class="snippet">${snippetFromHtml(n.content_html)}</div>
+        <div class="title" id="note-title">${n.title || 'New Note'}</div>
+        <div class="snippet">${snippetFromHtml(n.content_html || 'No additional text')}</div>
       </div>
     `;
     // <button class="note-trash-btn" title="Delete Note" onclick="event.stopPropagation(); deleteNote(${n.id})">🗑️</button>
@@ -94,13 +93,13 @@ function selectNote(id){
   document.getElementById('note-title').value = note?.title || '';
   document.getElementById('note-content').innerHTML = note?.content_html || '';
   renderNotes();
-  updateCharCounter();
+  // updateCharCounter();
 }
 
 function scheduleSave(){
   if(state.saveTimer) clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(saveCurrentNote, 500);
-  updateCharCounter();
+  // updateCharCounter();
 }
 
 function updateCharCounter(){
@@ -145,8 +144,9 @@ function persistNotes(){
 async function saveCurrentNote(){
   const id = state.currentNoteId;
   if(!id) return;
-  const title = document.getElementById('note-title').value;
   const content = document.getElementById('note-content').innerHTML;
+  const title = getTitle(content)
+  
   const idx = state.notes.findIndex(n => n.id === id);
   if(idx >= 0){
     state.notes[idx].title = title;
@@ -155,6 +155,18 @@ async function saveCurrentNote(){
     persistNotes();
     renderNotes();
   }
+}
+
+function getTitle(content){
+  const divs = document.querySelectorAll("#note-content div")
+
+  if(divs.length != 0) {
+    return (Array.from(divs).map(div => {
+      return div.innerHTML === '<br>' ? '' : div.textContent;
+    }))[0].slice(0, 100);
+  }
+
+  return content.replace(/<[^>]*>/g, '').slice(0, 100);
 }
 
 async function loadChannels(){
@@ -352,11 +364,15 @@ function showNotification(message, type = 'info') {
   }, 5000);
 }
 
-function deleteNote(noteId) {
+function deleteNote() {
   if (!confirm('Are you sure you want to delete this note?')) {
     return;
   }
-  
+
+  if (!state.currentNoteId) return
+
+  noteId = state.currentNoteId
+
   // Remove note from state
   state.notes = state.notes.filter(n => n.id !== noteId);
   
@@ -406,7 +422,8 @@ function deleteAllNotes() {
 function bindEvents(){
   document.getElementById('new-folder').onclick = createFolder;
   document.getElementById('new-note').onclick = createNote;
-  // document.getElementById('note-trash-btn').onclick = deleteNote;
+  // document.getElementById('note-item').onclick = selectNote;
+  document.getElementById('note-trash-btn').onclick = deleteNote;
   // document.getElementById('trash-all').onclick = deleteAllNotes;
   // document.getElementById('note-title').addEventListener('input', scheduleSave);
   document.getElementById('note-content').addEventListener('input', () => {
