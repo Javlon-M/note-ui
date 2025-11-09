@@ -142,10 +142,19 @@ function persistNotes(){
 }
 
 async function saveCurrentNote(){
-  const id = state.currentNoteId;
-  if(!id) return;
+  let id = state.currentNoteId;
   const content = document.getElementById('note-content').innerHTML;
   const title = getTitle(content)
+  if(!id) {
+    if(!state.currentChannelId){ alert('Select a channel first'); return; }
+    const note = { id: Date.now(), title: 'New Note', content_html: content === "" ? '' : content, is_pinned: false, updated_at: Date.now() };
+    
+    state.notes.unshift(note);
+    state.currentNoteId = note.id
+    persistNotes();
+    renderNotes();
+    id = state.currentNoteId
+  };
   
   const idx = state.notes.findIndex(n => n.id === id);
   if(idx >= 0){
