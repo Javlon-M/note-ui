@@ -83,9 +83,45 @@ function renderNotes(){
     `;
     // <button class="note-trash-btn" title="Delete Note" onclick="event.stopPropagation(); deleteNote(${n.id})">🗑️</button>
     li.onclick = () => selectNote(n.id);
+    // li.oncontextmenu = () => 
     list.appendChild(li);
   });
 }
+
+// function showContextMenu(e, target) {
+//   this.currentTarget = target;
+  
+//   // Position context menu
+//   const x = e.clientX;
+//   const y = e.clientY;
+  
+//   // Show menu to calculate dimensions
+//   this.contextMenu.classList.add('show');
+  
+//   // Get menu dimensions
+//   const menuWidth = this.contextMenu.offsetWidth;
+//   const menuHeight = this.contextMenu.offsetHeight;
+  
+//   // Get viewport dimensions
+//   const viewportWidth = window.innerWidth;
+//   const viewportHeight = window.innerHeight;
+  
+//   // Adjust position if menu goes off screen
+//   let finalX = x;
+//   let finalY = y;
+  
+//   if (x + menuWidth > viewportWidth) {
+//     finalX = viewportWidth - menuWidth - 10;
+//   }
+  
+//   if (y + menuHeight > viewportHeight) {
+//     finalY = viewportHeight - menuHeight - 10;
+//   }
+  
+//   // Set final position
+//   this.contextMenu.style.left = finalX + 'px';
+//   this.contextMenu.style.top = finalY + 'px';
+// }
 
 function selectNote(id){
   state.currentNoteId = id;
