@@ -304,7 +304,7 @@ async function publishCurrent(){
     return; 
   }
   
-  const title = document.getElementById('note-title').value;
+  const title = document.getElementById('note-title').innerHTML;
   const content = document.getElementById('note-content').innerHTML;
   
   if(!title.trim() && !content.trim()){
@@ -431,7 +431,6 @@ function deleteAllNotes() {
 function bindEvents(){
   document.getElementById('new-folder').onclick = createFolder;
   document.getElementById('new-note').onclick = createNote;
-  // document.getElementById('note-item').onclick = selectNote;
   document.getElementById('note-trash-btn').onclick = deleteNote;
   // document.getElementById('trash-all').onclick = deleteAllNotes;
   // document.getElementById('note-title').addEventListener('input', scheduleSave);
@@ -457,7 +456,7 @@ function bindEvents(){
   //   const f = e.target.files?.[0]; if(f) handleImageUpload(f); e.target.value = '';
   // });
   // document.querySelector('.upload').onclick = () => document.getElementById('image-input').click();
-  // document.getElementById('publish').onclick = publishCurrent;
+  document.getElementById('publish').onclick = publishCurrent;
   document.getElementById('global-search').addEventListener('input', async (e) => {
     state.searchQuery = e.target.value; await loadNotes();
   });
