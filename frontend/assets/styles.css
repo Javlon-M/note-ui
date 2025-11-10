@@ -141,8 +141,9 @@ body{
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-  padding: 8px;
-  min-width: 200px;
+  padding: 5px;
+  min-width: 130px;
+  max-width: calc(100vw - 20px);
   z-index: 1000;
   display: none;
 }
@@ -155,19 +156,31 @@ body{
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding-left: 4px;
+  padding-right: 10px;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .context-menu-item:hover {
-  background: #f5f5f7;
+  background: rgba(183, 183, 186, 0.16);
 }
 
-.context-menu-item.delete {
+.context-menu-item.delete, 
+.context-menu-item.delete .icon {
   color: #ff3b30;
+}
+
+.context-menu-item.delete .icon {
+  width: 21px;
+  height: 21px;
+}
+
+.context-menu-item.delete .trash {
+  display: flex;
+  align-items: center;
 }
 
 .note-item{ 

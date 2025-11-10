@@ -30,18 +30,6 @@
         </div> -->
       </div>
       <ul id="notes" class="notes">
-        <div class="context-menu" id="contextMenu">
-          <div class="context-menu-item delete" id="deleteItem">
-            <span class="trash">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <!-- Trash icon -->
-                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
-            </svg>
-            </span>
-            <span>Delete</span>
-          </div>
-        </div>
-        
         <!-- Notes populated here -->
       </ul>
     </section>
@@ -100,7 +88,17 @@
       <div id="note-content" class="note-content" contenteditable="true" spellcheck="true"></div>
     </section>
   </div>
-
+  <div class="context-menu" id="contextMenu">
+    <div class="context-menu-item delete" id="deleteItem">
+      <span class="trash">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <!-- Trash icon -->
+          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
+      </svg>
+      </span>
+      <span>Delete</span>
+    </div>
+  </div>
   <script src="/assets/app.js"></script>
 </body>
 </html>

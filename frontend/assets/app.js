@@ -16,6 +16,10 @@ const state = {
   searchQuery: '',
 };
 
+const context = {
+  target: null
+}
+
 async function http(method, url, body){
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if(body !== undefined) opts.body = JSON.stringify(body);
@@ -83,45 +87,54 @@ function renderNotes(){
     `;
     // <button class="note-trash-btn" title="Delete Note" onclick="event.stopPropagation(); deleteNote(${n.id})">🗑️</button>
     li.onclick = () => selectNote(n.id);
-    // li.oncontextmenu = () => 
+    li.oncontextmenu = (e) => showContextMenu(e, n.id)
     list.appendChild(li);
   });
 }
 
-// function showContextMenu(e, target) {
-//   this.currentTarget = target;
+function hideContextMenu() {
+  const contextMenu = document.getElementById('contextMenu');
+  contextMenu.classList.remove('show');
+  context.target = null;
+}
+
+function showContextMenu(e, target) {
+  e.preventDefault();
+  const contextMenu = document.getElementById('contextMenu');
   
-//   // Position context menu
-//   const x = e.clientX;
-//   const y = e.clientY;
+  context.target = target;
   
-//   // Show menu to calculate dimensions
-//   this.contextMenu.classList.add('show');
+  // Position context menu
+  const x = e.clientX;
+  const y = e.clientY;
   
-//   // Get menu dimensions
-//   const menuWidth = this.contextMenu.offsetWidth;
-//   const menuHeight = this.contextMenu.offsetHeight;
+  // Show menu to calculate dimensions
+  contextMenu.classList.add('show');
   
-//   // Get viewport dimensions
-//   const viewportWidth = window.innerWidth;
-//   const viewportHeight = window.innerHeight;
+  // Get menu dimensions
+  const menuWidth = contextMenu.offsetWidth;
+  const menuHeight = contextMenu.offsetHeight;
   
-//   // Adjust position if menu goes off screen
-//   let finalX = x;
-//   let finalY = y;
+  // Get viewport dimensions
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
   
-//   if (x + menuWidth > viewportWidth) {
-//     finalX = viewportWidth - menuWidth - 10;
-//   }
+  // Adjust position if menu goes off screen
+  let finalX = x;
+  let finalY = y;
   
-//   if (y + menuHeight > viewportHeight) {
-//     finalY = viewportHeight - menuHeight - 10;
-//   }
+  if (x + menuWidth > viewportWidth) {
+    finalX = viewportWidth - menuWidth - 10;
+  }
   
-//   // Set final position
-//   this.contextMenu.style.left = finalX + 'px';
-//   this.contextMenu.style.top = finalY + 'px';
-// }
+  if (y + menuHeight > viewportHeight) {
+    finalY = viewportHeight - menuHeight - 10;
+  }
+  
+  // Set final position
+  contextMenu.style.left = finalX + 'px';
+  contextMenu.style.top = finalY + 'px';
+}
 
 function selectNote(id){
   state.currentNoteId = id;
@@ -327,8 +340,8 @@ async function validateContent(title, content, telegram_channel, telegram_bot_to
 }
 
 async function publishCurrent(){
-  const telegram_channel = localStorage.getItem('TELEGRAM_CHANNELS')
-  const telegram_bot_token = localStorage.getItem('TELEGRAM_BOT_TOKEN')
+  const telegramChannel = localStorage.getItem('TELEGRAM_CHANNELS')
+  const telegramBotToken = localStorage.getItem('TELEGRAM_BOT_TOKEN')
 
   const id = state.currentNoteId;
   if(!id){ 
@@ -339,8 +352,7 @@ async function publishCurrent(){
     showNotification('Select a channel', 'error');
     return; 
   }
-  
-  const title = document.getElementById('note-title').innerHTML;
+  const title = ""
   const content = document.getElementById('note-content').innerHTML;
   
   if(!title.trim() && !content.trim()){
@@ -357,7 +369,7 @@ async function publishCurrent(){
   
   // Validate content length first
   showNotification('Validating content...', 'info');
-  const validation = await validateContent(title, content, telegram_channel, telegram_bot_token);
+  const validation = await validateContent(title, content, telegramChannel, telegramBotToken);
   
   if (!validation.success) {
     showNotification('Validation failed: ' + validation.error, 'error');
@@ -373,8 +385,8 @@ async function publishCurrent(){
     showNotification('Publishing...', 'info');
 
     const result = await http('POST', API.publish, { 
-      telegram_channel: telegram_channel,
-      telegram_bot_token: telegram_bot_token,
+      telegram_channel: telegramChannel,
+      telegram_bot_token: telegramBotToken,
       channel_id: state.currentChannelId, 
       title, 
       content_html: content,
@@ -409,14 +421,19 @@ function showNotification(message, type = 'info') {
   }, 5000);
 }
 
-function deleteNote() {
+function deleteNote(e) {
   if (!confirm('Are you sure you want to delete this note?')) {
     return;
   }
 
-  if (!state.currentNoteId) return
+  if (!state.currentNoteId && !context.target) return
 
-  noteId = state.currentNoteId
+  const contextMenu = document.getElementById('contextMenu');
+  if (!contextMenu.contains(e.target)) {
+    hideContextMenu();
+  }
+
+  noteId = context.target || state.currentNoteId
 
   // Remove note from state
   state.notes = state.notes.filter(n => n.id !== noteId);
@@ -435,6 +452,8 @@ function deleteNote() {
   renderNotes();
   
   showNotification('Note deleted', 'success');
+
+  hideContextMenu()
 }
 
 function deleteAllNotes() {
@@ -467,7 +486,27 @@ function deleteAllNotes() {
 function bindEvents(){
   document.getElementById('new-folder').onclick = createFolder;
   document.getElementById('new-note').onclick = createNote;
-  document.getElementById('note-trash-btn').onclick = deleteNote;
+
+  document.getElementById('note-trash-btn').addEventListener("click", (e) => deleteNote(e))
+  document.getElementById('deleteItem').addEventListener("click", (e) => deleteNote(e))
+
+  const contextMenu = document.getElementById('contextMenu');
+
+  window.addEventListener('scroll', () => {
+    hideContextMenu();
+  });
+
+  document.addEventListener('contextmenu', (e) => {
+    if (!e.target.closest('.note-item')) {
+      hideContextMenu();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!contextMenu.contains(e.target)) {
+      hideContextMenu();
+    }
+  });
   // document.getElementById('trash-all').onclick = deleteAllNotes;
   // document.getElementById('note-title').addEventListener('input', scheduleSave);
   document.getElementById('note-content').addEventListener('input', () => {
