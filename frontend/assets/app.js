@@ -9,7 +9,7 @@ const API = {
 const state = {
   channels: [],
   channelsStatus: null,
-  currentChannelId: null,
+  currentChannelId: localStorage.getItem("TELEGRAM_CHANNELS") ? localStorage.getItem("TELEGRAM_CHANNELS").split("=")[1] : "only-notes",
   notes: [], // local drafts for current channel
   currentNoteId: null,
   saveTimer: null,
@@ -252,7 +252,6 @@ async function loadChannels(){
     
     if(state.channels.length && state.currentChannelId == null){
       state.currentChannelId = state.channels[0].id;
-      // document.getElementById('current-folder-name').textContent = state.channels[0].name;
     }
     renderFolders();
   } catch (error) {
