@@ -264,13 +264,26 @@ async function loadChannels(){
 
 async function loadNotes(){
   if(!state.currentChannelId){ state.notes = []; renderNotes(); return; }
-  const key = `drafts:${state.currentChannelId}`;
-  const saved = localStorage.getItem(key);
-  const items = saved ? JSON.parse(saved) : [];
+  const defaultKey = `drafts:only-notes`;
+  const defaultSaved = localStorage.getItem(defaultKey)
+  const defaultItems = defaultSaved ? JSON.parse(defaultSaved) : [];
+
+  let items = []
+  if (state.currentChannelId != "only-notes") {
+    const key = `drafts:${state.currentChannelId}`;
+    const saved = localStorage.getItem(key);
+    items = saved ? JSON.parse(saved) : [];
+
+    localStorage.removeItem(defaultKey)
+  }
+
+  items = [...items, ...defaultItems]
+
   const q = state.searchQuery?.toLowerCase?.() || '';
   state.notes = q ? items.filter(n => (n.title||'').toLowerCase().includes(q) || snippetFromHtml(n.content_html).toLowerCase().includes(q)) : items;
   // Sort: pinned first then updated_at desc
   state.notes.sort((a,b) => (b.is_pinned?1:0)-(a.is_pinned?1:0) || (b.updated_at||0)-(a.updated_at||0));
+  persistNotes()
   renderNotes();
 }
 
