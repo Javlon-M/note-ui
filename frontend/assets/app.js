@@ -85,7 +85,6 @@ function renderNotes(){
         <div class="snippet">${snippetFromHtml(n.content_html || 'No additional text')}</div>
       </div>
     `;
-    // <button class="note-trash-btn" title="Delete Note" onclick="event.stopPropagation(); deleteNote(${n.id})">🗑️</button>
     li.onclick = () => selectNote(n.id);
     li.oncontextmenu = (e) => showContextMenu(e, n.id)
     list.appendChild(li);
@@ -186,6 +185,7 @@ function updateCharCounter(){
 
 function persistNotes(){
   if(!state.currentChannelId) return;
+  
   const key = `drafts:${state.currentChannelId}`;
   localStorage.setItem(key, JSON.stringify(state.notes));
 }
@@ -219,6 +219,12 @@ function getTitle(content){
   const divs = document.querySelectorAll("#note-content div")
 
   if(divs.length != 0) {
+    const noteContent = document.getElementById('note-content')
+    const html = noteContent.innerHTML
+    if (html[0] != "<") {
+      return content.slice(0, content.indexOf("<div>"));
+    }
+
     return (Array.from(divs).map(div => {
       return div.innerHTML === '<br>' ? '' : div.textContent;
     }))[0].slice(0, 100);
@@ -342,6 +348,11 @@ async function validateContent(title, content, telegram_channel, telegram_bot_to
 async function publishCurrent(){
   const telegramChannel = localStorage.getItem('TELEGRAM_CHANNELS')
   const telegramBotToken = localStorage.getItem('TELEGRAM_BOT_TOKEN')
+
+  if (!telegramChannel || !telegramBotToken) {
+    showNotification('Please configure the bot and channel', 'info');
+    return; 
+  }
 
   const id = state.currentNoteId;
   if(!id){ 
@@ -508,7 +519,6 @@ function bindEvents(){
     }
   });
   // document.getElementById('trash-all').onclick = deleteAllNotes;
-  // document.getElementById('note-title').addEventListener('input', scheduleSave);
   document.getElementById('note-content').addEventListener('input', () => {
     const editor = document.getElementById('note-content');
     
