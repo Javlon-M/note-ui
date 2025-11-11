@@ -254,6 +254,11 @@ async function loadChannels(){
       state.currentChannelId = state.channels[0].id;
     }
     renderFolders();
+
+    loadNotes()
+
+    persistNotes()
+
   } catch (error) {
     console.error('Failed to load channels:', error);
     // Show error in UI
@@ -283,7 +288,7 @@ async function loadNotes(){
   state.notes = q ? items.filter(n => (n.title||'').toLowerCase().includes(q) || snippetFromHtml(n.content_html).toLowerCase().includes(q)) : items;
   // Sort: pinned first then updated_at desc
   state.notes.sort((a,b) => (b.is_pinned?1:0)-(a.is_pinned?1:0) || (b.updated_at||0)-(a.updated_at||0));
-  persistNotes()
+  
   renderNotes();
 }
 
